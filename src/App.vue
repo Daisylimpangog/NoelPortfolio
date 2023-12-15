@@ -130,9 +130,17 @@
       <div class="container">
         <h1 class="sub-title">Unique <span>Application</span></h1>
 
-        <div class="speech-app">
-          <input v-model="sentence" placeholder="Enter a sentence" />
-          <button @click="speak">Speak</button>
+        <h1>Grammar Checker</h1>
+        <p>Paste your text below to check for grammar errors:</p>
+
+        <textarea v-model="sentence"></textarea>
+        <button @click="checkGrammar">Check Grammar</button>
+
+        <div id="results">
+          <p v-if="grammarResults.length === 0">No grammar errors found!</p>
+          <p v-else v-for="(result, index) in grammarResults" :key="index">
+            {{ result.message }} at position {{ result.offset }}.
+          </p>
         </div>
       </div>
     </div>
@@ -179,6 +187,7 @@
     </div>
   </div>
 </template>
+
 <script>
 export default {
   data() {
@@ -191,6 +200,7 @@ export default {
       tabcontents: [],
       sidemenu: null,
       sentence: "",
+      grammarResults: [],
     };
   },
   mounted() {
@@ -257,12 +267,32 @@ export default {
     clearAll() {
       this.tasks = [];
     },
-    speak() {
-      if (this.sentence.trim() !== "") {
-        const speechSynthesis = window.speechSynthesis;
-        const utterance = new SpeechSynthesisUtterance(this.sentence);
+    async checkGrammar() {
+      const apiKey = "YOUR_API_KEY"; // Replace with your actual LanguageTool API key
 
-        speechSynthesis.speak(utterance);
+      try {
+        const response = await fetch(
+          `https://api.languagetool.org/v2/check?text=${encodeURIComponent(
+            this.sentence
+          )}&language=en-US&enabledOnly=false`,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        this.grammarResults = data.matches;
+      } catch (error) {
+        console.error("Error checking grammar:", error);
+        this.grammarResults = [
+          { message: "An error occurred while checking grammar.", offset: 0 },
+        ];
       }
     },
   },
